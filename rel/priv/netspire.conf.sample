@@ -1,0 +1,24 @@
+%%%
+%%% Netspire sample configuration file
+%%%
+
+%% The list of the directories where additional modules are located
+{code_path, []}.
+
+%% Services
+{services, [
+    {netspire_netflow, [
+        {mode, server},
+        {listen, {"0.0.0.0", 9999}}
+    ]},
+
+    {netspire_netflow, [
+        {mode, relay},
+        {listen, {"0.0.0.0", 9998}},
+        {hosts, [{"10.10.0.1", 9999}, {"192.168.0.1", 9999}]}
+    ]}
+]}.
+
+%% Dynamic modules
+{modules, [
+]}.

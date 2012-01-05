@@ -1,0 +1,8 @@
+ebin
+deps
+.eunit
+rel/netspire
+erl_crash.dump
+*.swp
+*.conf
+*.profile
