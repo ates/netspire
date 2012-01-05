@@ -96,10 +96,12 @@ loaded_modules_with_options() ->
     ets:select(?MODULES_TABLE, [{{'_','$1','$2'}, [], [{{'$1', '$2'}}]}]).
 
 %% Internal functions
+-spec wait_for_process(pid()) -> ok.
 wait_for_process(Process) ->
     MonRef = erlang:monitor(process, Process),
     wait_for_stop(Process, MonRef).
 
+-spec wait_for_stop(pid(), reference()) -> ok.
 wait_for_stop(Process, MonRef) ->
     receive
         {'DOWN', MonRef, _Type, _Object, _Info} -> ok
@@ -108,6 +110,7 @@ wait_for_stop(Process, MonRef) ->
             wait_for_kill(MonRef)
     end.
 
+-spec wait_for_kill(reference()) -> ok.
 wait_for_kill(MonRef) ->
     receive
         {'DOWN', MonRef, _Type, _Object, _Info} -> ok
