@@ -8,14 +8,13 @@
 %% Services
 {services, [
     {netspire_netflow, [
-        {mode, server},
+        {name, nc1},
         {listen, {"0.0.0.0", 9999}}
     ]},
 
     {netspire_netflow, [
-        {mode, relay},
-        {listen, {"0.0.0.0", 9998}},
-        {hosts, [{"10.10.0.1", 9999}, {"192.168.0.1", 9999}]}
+        {name, nc2},
+        {listen, {"0.0.0.0", 9998}}
     ]}
 ]}.
 

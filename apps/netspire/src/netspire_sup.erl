@@ -10,10 +10,9 @@
 
 -define(SPEC(M), {M, {M, start_link, []},
         permanent, infinity, supervisor, [M]}).
--define(CHILDRENS, [netspire_misc_sup]).
+-define(CHILDRENS, [netspire_misc_sup, netflow_sup]).
 -define(TABLES, [
-    {netspire_modules, [{keypos, 2}]},
-    {netspire_netflow, [{keypos, 2}]}
+    {netspire_modules, [{keypos, 2}]}
 ]).
 
 start_link() ->
