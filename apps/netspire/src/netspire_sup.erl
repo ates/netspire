@@ -12,7 +12,8 @@
         permanent, infinity, supervisor, [M]}).
 -define(CHILDRENS, [netspire_misc_sup, netflow_sup]).
 -define(TABLES, [
-    {netspire_modules, [{keypos, 2}]}
+    {netspire_modules, [{keypos, 2}]},
+    {netspire_hooks, []}
 ]).
 
 start_link() ->
