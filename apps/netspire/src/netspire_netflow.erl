@@ -13,6 +13,6 @@ start(Options) ->
     case netflow:start_service(SvcName, [IP, Family, Port]) of
         {ok, _} ->
             ?INFO_MSG("NetFlow service ~p started on ~s:~p~n",
-                [SvcName, inet_parse:ntoa(IP), Port]);
+                [SvcName, ?IP2STR(IP), Port]);
         _ -> ok
     end.

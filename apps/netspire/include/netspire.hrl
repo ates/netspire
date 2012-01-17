@@ -2,6 +2,9 @@
 -define(WARNING_MSG(Format, Args), error_logger:warning_msg(Format, Args)).
 -define(ERROR_MSG(Format, Args), error_logger:error_msg(Format, Args)).
 
+%% Convert inet:ip_address() to string
+-define(IP2STR(IP), inet_parse:ntoa(IP)).
+
 %% Data types
 -type uptime() :: {non_neg_integer(),
     {calendar:hour(), calendar:minute(), calendar:second()}}.
