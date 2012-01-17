@@ -1,7 +1,7 @@
 -module(ip).
 
 %% API
--export([ip2long/1, address/1, is_macaddr/1]).
+-export([ip2long/1, address/1, is_macaddr/1, bin_ipv6_to_address/1]).
 
 -include("netspire.hrl").
 
@@ -48,6 +48,11 @@ is_macaddr(Address) ->
         _ -> false
     end.
 
+%% @doc Convert binary to IPv6 address.
+-spec bin_ipv6_to_address(binary()) -> ip_address().
+bin_ipv6_to_address(Bin) when byte_size(Bin) =:= 16 ->
+    list_to_tuple([I || <<I:16>> <= Bin]).
+
 %% Tests
 -ifdef(TEST).
 
@@ -75,5 +80,9 @@ is_macaddr_test() ->
     ?assert(is_macaddr("08002b:010203") =:= true),
     ?assert(is_macaddr("08002b-010203") =:= true),
     ?assert(is_macaddr("0800.2b01.0203") =:= true).
+
+bin_ipv6_to_address_test() ->
+    Addr = <<222,173,190,175,0,0,0,0,0,0,0,0,0,0,0,1>>,
+    ?assert(bin_ipv6_to_address(Addr) =:= {57005,48815,0,0,0,0,0,1}).
 
 -endif.
