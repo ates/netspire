@@ -208,6 +208,8 @@ encode_attribute(Code, Type, Value) ->
     <<Code:8, Length:8, Bin/binary>>.
 
 %% @doc Encodes RADIUS value to Erlang term.
+encode_value(Value, _Type) when is_binary(Value) ->
+    Value;
 encode_value(Value, octets) when is_list(Value) ->
     list_to_binary(Value);
 encode_value(Value, string) when is_list(Value) ->
@@ -227,7 +229,7 @@ encode_value(Value, date) ->
     encode_value(Value, integer);
 encode_value(Value, ipaddr) when is_list(Value) ->
     case ip:address(Value) of
-        {ok, {inet4, {A, B, C, D}}} ->
+        {ok, {inet, {A, B, C, D}}} ->
             <<A:8, B:8, C:8, D:8>>;
         _ ->
             ?WARNING_MSG("Unable to encode attribute value ~p as ipaddr~n",
