@@ -17,6 +17,7 @@ start(_StartType, _StartArgs) ->
     case netspire_sup:start_link() of
         {ok, _Pid} = Sup ->
             add_code_path(),
+            init_mnesia(),
             start_services(),
             start_modules(),
             Sup;
@@ -53,6 +54,35 @@ add_code_path() ->
         undefined -> ok;
         Directories ->
             code:add_pathsz(Directories)
+    end.
+
+init_mnesia() ->
+    ?INFO_MSG("Checking availability of cluster environment~n", []),
+    Nodes = case net_adm:host_file() of
+        {error, _} -> [];
+        _ ->
+            [N || N <- net_adm:world(), N =/= node()]
+    end,
+    case Nodes of
+        [] ->
+            ?INFO_MSG("No additional nodes were found~n", []),
+            mnesia:create_schema([node()]),
+            mnesia:start();
+        _ ->
+            ?INFO_MSG("Connected nodes: ~p~n", [Nodes]),
+            mnesia:change_config(extra_db_nodes, Nodes),
+            mnesia:start(),
+            ok = waiting_for_tables()
+    end.
+
+waiting_for_tables() ->
+    Tables = [Tab || Tab <- mnesia:system_info(tables), mnesia:table_info(Tab, local_content) =:= false],
+    case mnesia:wait_for_tables(Tables, 30000) of
+        ok -> ok;
+        {timeout, Tabs} ->
+            throw({error, {timeout_waiting_for_tables, Tabs}});
+        {error, Reason} ->
+            throw({error, {failed_waiting_for_tables, Reason}})
     end.
 
 %% @doc Starts services defined in configuration file.

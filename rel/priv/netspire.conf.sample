@@ -45,4 +45,50 @@
 
 %% Dynamic modules
 {modules, [
+    %% RADIUS PAP auth type
+    {mod_pap, []},
+
+    %% RADIUS CHAP auth type
+    {mod_chap, []},
+
+    %% RADIUS Digest auth type
+    {mod_digest, []},
+
+    %% RADIUS MS-CHAP-V2 auth type
+    {mod_mschap_v2, [
+        {use_mppe, no}, {require_encryption, yes}, {require_strong, yes}
+    ]},
+
+    {mod_iptraffic, [
+        {tariffs, "tariffs.conf"},
+        {session_timeout, 60},
+        {delay_stop, 5},
+        {disconnect_on_shutdown, yes}
+    ]},
+
+    {mod_disconnect_pod, []},
+
+    %% Pool of IP addresses
+    {mod_ippool, [
+        %% Reset pool on every application start
+        {allocate, true},
+
+        %% Default pool name (used if Netspire-Framed-Pool RADIUS reply is missing)
+        {default, main},
+
+        %% IP expiration time, depends on session timeout
+        {timeout, 180},
+
+        %% Use another one free pool of the IP addresses
+        %% if default or defined pool in Netspire-Framed-Pool attribute has no free addresses
+        {use_another_one_free_pool, no},
+
+        {pools, [
+            {main, [
+                "10.10.1.0/24",
+                "192.168.1.130-192.168.1.140",
+                "192.168.10.0/255.255.255.0"
+            ]}
+        ]}
+    ]}
 ]}.

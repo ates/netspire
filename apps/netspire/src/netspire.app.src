@@ -9,8 +9,7 @@
     {registered, []},
     {applications, [
         kernel,
-        stdlib,
-        mnesia
+        stdlib
     ]},
     {mod, {netspire_app, []}},
     {env, []}

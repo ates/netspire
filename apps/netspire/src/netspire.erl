@@ -8,6 +8,12 @@
 %% @doc Start the netspire application. Useful when testing using the shell.
 -spec start() -> ok | {error, term()}.
 start() ->
+    application:start(sasl),
+    application:start(ibrowse),
+    application:start(crypto),
+    application:start(public_key),
+    application:start(ssl),
+    application:start(couchbeam),
     application:start(netspire).
 
 %% @doc Stop profiling and display results.
