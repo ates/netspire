@@ -1,4 +1,4 @@
-REBAR = rebar
+REBAR = ./rebar
 LIBS = ERL_LIBS=apps:deps
 
 all: compile
