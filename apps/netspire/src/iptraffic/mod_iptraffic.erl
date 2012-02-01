@@ -226,7 +226,7 @@ fetch_balance(Account) ->
     View = "Transaction/balance_by_service",
     Options = [{key, [list_to_binary(Account), ?SERVICE_IDENT]}, {reduce, true}],
     case netspire_couchdb:fetch(View, Options) of
-        [] -> 0;
+        {ok, []} -> 0;
         {ok, [{[_, {<<"value">>, Balance}]}]} ->
             Balance
     end.
