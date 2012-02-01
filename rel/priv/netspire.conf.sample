@@ -5,6 +5,10 @@
 %% The list of the directories where additional modules are located
 {code_path, []}.
 
+{couchdb_backend, [
+    {database, "test"}
+]}.
+
 %% Services
 {services, [
     {netspire_netflow, [
@@ -61,6 +65,7 @@
 
     {mod_iptraffic, [
         {tariffs, "tariffs.conf"},
+        {accounting_mode, netflow},
         {session_timeout, 60},
         {delay_stop, 5},
         {disconnect_on_shutdown, yes}
