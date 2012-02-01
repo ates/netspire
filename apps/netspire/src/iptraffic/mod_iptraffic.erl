@@ -65,10 +65,10 @@ init([Options]) ->
 access_request(_Value, Request, Client) ->
     UserName = radius:attribute_value("User-Name", Request),
     case fetch_account(UserName) of
-        {ok, {Password, RadiusReplies, Balance, Plan}} ->
+        {ok, {Account, Password, RadiusReplies, Balance, Plan}} ->
             case authorize(Balance, RadiusReplies, Client) of
                 true ->
-                    {auth, {Password, RadiusReplies, {Balance, Plan}}};
+                    {auth, {Password, RadiusReplies, {Account, Balance, Plan}}};
                 _ ->
                     ?WARNING_MSG("Authorization was failed for ~s~n", [UserName]),
                     {stop, undefined}
@@ -207,23 +207,24 @@ get_option(Name, Default) ->
     gen_module:get_option(?MODULE, Name, Default).
 
 fetch_account(UserName) ->
-    View = "ServiceLink/by_account_and_service",
+    View = "ServiceLink/by_login_and_service",
     Options = [{key, [list_to_binary(UserName), ?SERVICE_IDENT]}],
     case netspire_couchdb:fetch(View, Options) of
         {ok, [Result]} ->
             Doc = get_value("value", Result),
+            Account = get_value("account", Doc),
             Password = get_value("password", Doc),
             RadiusReplies = extract_radius_attributes(Doc),
-            Balance = fetch_balance(UserName),
+            Balance = fetch_balance(Account),
             Plan = get_value("plan", Doc),
-            {ok, {Password, RadiusReplies, Balance, Plan}};
+            {ok, {Account, Password, RadiusReplies, Balance, Plan}};
         Error ->
            Error
     end.
 
-fetch_balance(UserName) ->
+fetch_balance(Account) ->
     View = "Transaction/balance_by_service",
-    Options = [{key, [list_to_binary(UserName), ?SERVICE_IDENT]}],
+    Options = [{key, [list_to_binary(Account), ?SERVICE_IDENT]}, {reduce, true}],
     case netspire_couchdb:fetch(View, Options) of
         [] -> 0;
         {ok, [{[_, {<<"value">>, Balance}]}]} ->

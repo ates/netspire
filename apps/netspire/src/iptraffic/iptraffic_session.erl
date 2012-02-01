@@ -81,13 +81,14 @@ init([UUID]) ->
             {stop, ambiguous_match}
     end.
 
-handle_call({prepare, UserName, {Balance, Plan}, Client}, _From, State) ->
+handle_call({prepare, UserName, {Account, Balance, Plan}, Client}, _From, State) ->
     SID = {new, UserName},
     Now = util:timestamp(),
     Timeout = mod_iptraffic:get_option(session_timeout, 60),
     ExpiresAt = Now + Timeout,
     Data = #ipt_data{balance = Balance, plan = Plan},
     NewState = State#ipt_session{
+        account = Account,
         sid = SID, status = new, username = UserName,
         nas_spec = Client, disc_req_sent = false,
         data = Data, started_at = Now, expires_at = ExpiresAt
@@ -102,7 +103,7 @@ handle_call({prepare, UserName, {Balance, Plan}, Client}, _From, State) ->
 handle_call({start, IP, SID}, _From, State) ->
     Doc = [
         {document_type, "IptrafficSession"},
-        {account, State#ipt_session.username},
+        {account, State#ipt_session.account},
         {sid, SID},
         {ip, inet_parse:ntoa(IP)},
         {octets_in, 0},
@@ -214,7 +215,7 @@ stop_session(#ipt_session{status = new} = Session, _Expired) ->
     ?INFO_MSG("Discarding session: ~s~n", [to_string(Session)]),
     mnesia:dirty_delete_object(Session);
 stop_session(#ipt_session{status = preclosed} = Session, Expired) ->
-    #ipt_session{sid = SID, username = UserName, data = Data} = Session,
+    #ipt_session{sid = SID, account = Account, data = Data} = Session,
     #ipt_data{octets_in = In, octets_out = Out, amount = Amount} = Data,
     Doc = Session#ipt_session.doc,
     NewValues = [
@@ -229,13 +230,13 @@ stop_session(#ipt_session{status = preclosed} = Session, Expired) ->
         {ok, _Doc1} ->
             TransactionDoc = [
                 {document_type, "Transaction"},
-                {account, UserName},
+                {account, Account},
                 {service, "iptraffic"},
                 {amount, Amount},
                 {code, 1},
                 {comment, SID}
             ],
-            netspire_couchdb:make_doc(TransactionDoc),
+            {ok, _Doc} = netspire_couchdb:make_doc(TransactionDoc),
             mnesia:dirty_delete_object(Session),
             {ok, Session};
         Error ->

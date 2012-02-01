@@ -14,6 +14,7 @@
         nas_spec,
         disc_req_sent,
         doc,
+        account,
         data
     }).
 
