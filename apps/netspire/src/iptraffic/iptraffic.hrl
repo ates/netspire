@@ -1,3 +1,6 @@
+%% Used to identify service name in the couchdb document
+-define(SERVICE_IDENT, <<"iptraffic">>).
+
 -record(ipt_args, {sec, src_ip, dst_ip, src_port, dst_port, proto, octets, dir}).
 
 -record(ipt_session, {

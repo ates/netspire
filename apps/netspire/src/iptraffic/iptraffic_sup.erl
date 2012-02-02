@@ -1,8 +1,10 @@
 -module(iptraffic_sup).
+
 -behaviour(supervisor).
 
 %% API
--export([start/1, start_link/1, stop/0, init_session/1, resume_all/0, delete_session/2]).
+-export([start/1, start_link/1, stop/0, init_session/1, resume_all/0,
+         delete_session/2]).
 
 %% supervisor callbacks
 -export([init/1]).

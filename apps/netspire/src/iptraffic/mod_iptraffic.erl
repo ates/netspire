@@ -21,8 +21,6 @@
 -include("netspire.hrl").
 -include("iptraffic.hrl").
 
--define(SERVICE_IDENT, <<"iptraffic">>).
-
 -record(state, {accounting_mode = radius}).
 
 start(Options) ->
@@ -211,12 +209,12 @@ fetch_account(UserName) ->
     Options = [{key, [list_to_binary(UserName), ?SERVICE_IDENT]}],
     case netspire_couchdb:fetch(View, Options) of
         {ok, [Result]} ->
-            Doc = get_value("value", Result),
-            Account = get_value("account", Doc),
-            Password = get_value("password", Doc),
+            Doc = couch:get_value(value, Result),
+            Account = couch:get_value(account, Doc),
+            Password = couch:get_value(password, Doc),
             RadiusReplies = extract_radius_attributes(Doc),
             Balance = fetch_balance(Account),
-            Plan = get_value("plan", Doc),
+            Plan = couch:get_value(plan, Doc),
             {ok, {Account, Password, RadiusReplies, Balance, Plan}};
         Error ->
            Error
@@ -231,16 +229,8 @@ fetch_balance(Account) ->
             Balance
     end.
 
-get_value(Key, Result) ->
-    case couchbeam_doc:get_value(list_to_binary(Key), Result) of
-        undefined -> "";
-        Value when is_binary(Value) ->
-            binary_to_list(Value);
-        Value -> Value
-    end.
-
 extract_radius_attributes(Doc) ->
-    extract_radius_attributes(get_value("radius_replies", Doc), []).
+    extract_radius_attributes(couch:get_value(radius_replies, Doc), []).
 
 extract_radius_attributes([], Acc) ->
     lists:reverse(Acc);

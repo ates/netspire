@@ -3,10 +3,12 @@
 -behaviour(gen_server).
 
 %% API
--export([start_link/1, prepare/4, start/3, interim/1, stop/1, expire/1, handle_packet/2, list/0, list/1]).
+-export([start_link/1, prepare/4, start/3, interim/1, stop/1,
+         expire/1, handle_packet/2, list/0, list/1]).
 
 %% gen_server callbacks
--export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
+-export([init/1, handle_call/3, handle_cast/2, handle_info/2,
+         code_change/3, terminate/2]).
 
 -include("netspire.hrl").
 -include("netflow_v5.hrl").
@@ -59,11 +61,11 @@ expire(SID) ->
 handle_packet(_SrcIP, Pdu) ->
     process_netflow_packet(Pdu).
 
-%% Shows all registered sessions
+%% @doc Shows all registered sessions.
 list() ->
     [list(S) || S <- mnesia:dirty_all_keys(ipt_session)].
 
-%% Shows the session by SID
+%% @doc Shows the session by SID.
 list(SID) ->
     [Session] = mnesia:dirty_read({ipt_session, SID}), Session.
 
@@ -206,7 +208,7 @@ terminate(shutdown, State) ->
         _ -> ok
     end,
     stop_session(State, false),
-    ?INFO_MSG("Session ~s shutted down successfully~n", [to_string(State)]);
+    ?INFO_MSG("Session ~s shut down successfully~n", [to_string(State)]);
 terminate(Reason, State) ->
     ?ERROR_MSG("Session ~s abnormally terminated due to ~p~n", [to_string(State), Reason]).
 
@@ -229,9 +231,9 @@ stop_session(#ipt_session{status = preclosed} = Session, Expired) ->
             TransactionDoc = [
                 {document_type, "Transaction"},
                 {account, Account},
-                {service, "iptraffic"},
+                {service, ?SERVICE_IDENT},
                 {amount, Amount},
-                {code, 1},
+                {code, 1}, % withdraw
                 {comment, SID}
             ],
             {ok, _Doc} = netspire_couchdb:save_doc(TransactionDoc),
