@@ -6,7 +6,7 @@
 {code_path, []}.
 
 {couchdb_backend, [
-    {host, "localhost",
+    {host, "localhost"},
     {port, 5984},
     {database, "test"}
 ]}.
