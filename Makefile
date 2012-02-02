@@ -25,6 +25,7 @@ release: test
 run:
 	@$(REBAR) compile skip_deps=true
 	test -e netspire.conf || cp rel/priv/netspire.conf.sample netspire.conf
+	test -e tariffs.conf || cp rel/priv/tariffs.conf.sample tariffs.conf
 	$(LIBS) erl -name netspire -netspire logfile \"/tmp/netspire.log\" \
 		-mnesia dir \"/tmp/netspire\" \
 		-mnesia dump_log_write_threshold 50000 \
