@@ -39,10 +39,17 @@ init([]) ->
             Port = proplists:get_value(port, Options, 5984),
             DBName = proplists:get_value(database, Options, "netspire"),
             S = couchbeam:server_connection(Host, Port, "", []),
-            {ok, Database} = couchbeam:open_db(S, DBName, []),
-            ?INFO_MSG("Connection to CouchDB backend defined: "
-                "~s:~p/~s~n", [Host, Port, DBName]),
-            {ok, #state{db = Database}}
+            case couchbeam:server_info(S) of
+                {ok, ServerInfo} ->
+                    Version = couch:get_value(version, ServerInfo),
+                    ?INFO_MSG("CouchDB version: ~s~n", [Version]),
+                    {ok, Database} = couchbeam:open_db(S, DBName, []),
+                    {ok, #state{db = Database}};
+                {error, {_, {error, Reason}}} ->
+                    Msg = inet:format_error(Reason),
+                    ?ERROR_MSG("Cannot connect to backend: ~s~n", [Msg]),
+                    {error, Reason}
+            end
     end.
 
 handle_call({fetch, DesignView, Options}, _From, State) ->
