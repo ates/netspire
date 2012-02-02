@@ -105,13 +105,13 @@ handle_call({start, IP, SID}, _From, State) ->
         {document_type, "IptrafficSession"},
         {account, State#ipt_session.account},
         {sid, SID},
-        {ip, inet_parse:ntoa(IP)},
+        {ip, IP},
         {octets_in, 0},
         {octets_out, 0},
         {amount, 0},
         {started_at, now_to_string(now())}
     ],
-    case netspire_couchdb:make_doc(Doc) of
+    case netspire_couchdb:save_doc(Doc) of
         {ok, Doc1} ->
             F = fun() ->
                     mnesia:delete_object(State),
@@ -135,14 +135,13 @@ handle_call(interim, _From, State) ->
     ExpiresAt = util:timestamp() + Timeout,
     #ipt_session{data = Data} = State,
     #ipt_data{octets_in = In, octets_out = Out, amount = Amount} = Data,
-    NewValues = [
+    Values = [
         {octets_in, In},
         {octets_out, Out},
         {amount, Amount},
         {updated_at, now_to_string(now())}
     ],
-    {Doc} = netspire_couchdb:update_doc(NewValues, State#ipt_session.doc),
-    case netspire_couchdb:make_doc(Doc) of
+    case netspire_couchdb:update_doc(Values, State#ipt_session.doc) of
         {ok, Doc1} ->
             F = fun() ->
                     mnesia:delete_object(State),
@@ -218,15 +217,14 @@ stop_session(#ipt_session{status = preclosed} = Session, Expired) ->
     #ipt_session{sid = SID, account = Account, data = Data} = Session,
     #ipt_data{octets_in = In, octets_out = Out, amount = Amount} = Data,
     Doc = Session#ipt_session.doc,
-    NewValues = [
+    Values = [
         {amount, Amount},
         {octets_in, In},
         {octets_out, Out},
         {finished_at, now_to_string(now())},
         {expired, Expired}
     ],
-    {Doc1} = netspire_couchdb:update_doc(NewValues, Doc),
-    case netspire_couchdb:make_doc(Doc1) of
+    case netspire_couchdb:update_doc(Values, Doc) of
         {ok, _Doc1} ->
             TransactionDoc = [
                 {document_type, "Transaction"},
@@ -236,7 +234,7 @@ stop_session(#ipt_session{status = preclosed} = Session, Expired) ->
                 {code, 1},
                 {comment, SID}
             ],
-            {ok, _Doc} = netspire_couchdb:make_doc(TransactionDoc),
+            {ok, _Doc} = netspire_couchdb:save_doc(TransactionDoc),
             mnesia:dirty_delete_object(Session),
             {ok, Session};
         Error ->
