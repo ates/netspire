@@ -64,7 +64,7 @@ access_request(_Value, Request, Client) ->
     UserName = radius:attribute_value("User-Name", Request),
     case fetch_account(UserName) of
         {ok, {Account, Password, RadiusReplies, Balance, Plan}} ->
-            case authorize(Balance, RadiusReplies, Client) of
+            case authorize(UserName, Balance, RadiusReplies, Client) of
                 true ->
                     {auth, {Password, RadiusReplies, {Account, Balance, Plan}}};
                 _ ->
@@ -77,8 +77,20 @@ access_request(_Value, Request, Client) ->
     end.
 
 %% TODO: Implement authrozation phase: check balance, allowed NAS, etc
-authorize(_Balance, _RadiusReplies, _Client) ->
-    true.
+authorize(UserName, _Balance, RadiusReplies, Client) ->
+    %% Verify is client can connection to the NAS
+    case proplists:get_all_values("Netspire-Allowed-NAS", RadiusReplies) of
+        [] -> % Not specified any NASes, so can
+            true;
+        NASes ->
+            NASName = atom_to_list(Client#nas_spec.name),
+            case lists:member(NASName, NASes) of
+                true -> true;
+                false ->
+                    ?INFO_MSG("User ~s is not authorized to connect to NAS ~s~n",
+                        [UserName, NASName])
+            end
+    end.
 
 init_session(Response, Request, Extra, Client) ->
     UserName = radius:attribute_value("User-Name", Request),
@@ -224,9 +236,9 @@ fetch_balance(Account) ->
     View = "Transaction/balance_by_service",
     Options = [{key, [list_to_binary(Account), ?SERVICE_IDENT]}, {reduce, true}],
     case netspire_couchdb:fetch(View, Options) of
-        {ok, []} -> 0;
         {ok, [{[_, {<<"value">>, Balance}]}]} ->
-            Balance
+            Balance;
+        _ -> 0
     end.
 
 extract_radius_attributes(Doc) ->
