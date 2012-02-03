@@ -2,14 +2,12 @@
     {description, "Netspire Billing System"},
     {vsn, "0.0.1"},
     {modules, [
-        netspire_app,
-        netspire_sup,
-        netspire
     ]},
     {registered, []},
     {applications, [
         kernel,
-        stdlib
+        stdlib,
+        couchbeam
     ]},
     {mod, {netspire_app, []}},
     {env, []}
