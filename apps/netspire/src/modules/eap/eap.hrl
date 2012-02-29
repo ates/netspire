@@ -18,6 +18,8 @@
 %% |     Type      |  Type-Data ...
 %% +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-
 -define(EAP_PACKET, Code:8, Ident:8, Length:16, Type:8, Data/binary).
+%% The size of EAP packet without data
+-define(EAP_PACKET_NODATA_SIZE, 5).
 
 %% Length of EAP-Message attribute value in octets
 -define(EAP_MESSAGE_LEN, 253).

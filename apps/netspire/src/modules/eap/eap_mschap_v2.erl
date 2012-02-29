@@ -23,6 +23,8 @@
 
 -define(CHALLENGE_LEN, 16). % 16 octets
 -define(CHALLENGE_PACKET_SIZE, 26). % size of packet without NAME length
+%% The Message field contains a 42-octet authenticator response string
+-define(MESSAGE_LEN, 42).
 
 -record(emschap, {username, challenge, phase, ntresponse, pwhash}).
 
@@ -45,14 +47,14 @@ challenge(UserName, Ident) ->
     Challenge = libeap:challenge(),
     Name = list_to_binary(UserName),
     Length = ?CHALLENGE_PACKET_SIZE + byte_size(Name),
-    Packet = <<?EAP_REQUEST:8,              % Code, 1 octet
-               (Ident + 1):8,               % Ident, 1 octet
-               Length:16,                   % Length, 2 octets
-               ?EAP_MSCHAPV2_RESPONSE:8,    % Type, 1 octet
-               ?OPCODE_CHALLENGE:8,         % OpCode, 1 octet
-               (Ident + 1):8,               % MS-CHAPv2-ID, 1 octet
-               (Length - 5):16,             % MS-Length, 2 octets
-               16:8,                        % Value-Size, 1 octet, value should be 16
+    Packet = <<?EAP_REQUEST:8,
+               (Ident + 1):8,
+               Length:16,
+               ?EAP_MSCHAPV2_RESPONSE:8,
+               ?OPCODE_CHALLENGE:8,
+               (Ident + 1):8,
+               (Length - ?EAP_PACKET_NODATA_SIZE):16,
+               16:8, % the length of the Challenge field
                Challenge/binary,
                Name/binary>>,
     E = #emschap{username = UserName, challenge = Challenge, phase = 1},
@@ -98,26 +100,32 @@ authenticate(UserName, _Password, _Ident, <<?OPCODE_SUCCESS>>, Request, Client) 
 authenticate(UserName, Password, Ident, Packet, _Request, _Client) ->
     <<_OpCode:8, MSIdent:8, _MSLen:16, _ValueSize:8, Response:49/binary-unit:8, _Name:4/binary-unit:8>> = Packet,
     <<PeerChallenge:16/binary-unit:8, _Zero:8/binary-unit:8, NTResponse:24/binary-unit:8, _Flags:1/binary-unit:8>> = Response,
-    Password1 = util:latin1_to_unicode(Password),
-    PasswordHash = crypto:md4(Password1),
-    Entry = eap_reg:pull(UserName),
-    PrevChallenge = Entry#emschap.challenge,
-    Challenge = mschap_v2_challenge_hash(PeerChallenge, PrevChallenge, UserName),
-    ChallengeResponse = mschap_v2_challenge_response(Challenge, PasswordHash),
-    Name = list_to_binary(UserName),
-    Length = 46 + byte_size(Name),
-    case ChallengeResponse == NTResponse of
-        true ->
-            Message = mschap_v2_auth_response(PasswordHash, NTResponse, Challenge),
-            Pkt = <<?EAP_REQUEST:8,
-                    (Ident + 1):8,
-                    Length:16,
-                    ?EAP_MSCHAPV2_RESPONSE:8,
-                    ?OPCODE_SUCCESS:8,
-                    (MSIdent + 1):8,
-                    (Length - 5):16,
-                    (list_to_binary(Message))/binary>>,
-            eap_reg:push(UserName, Entry#emschap{phase = 2, ntresponse = NTResponse, pwhash = PasswordHash}),
-            {challenge, libeap:compose(Pkt)};
-        _ -> reject % TODO: Failure request packet???
+    case eap_reg:pull(UserName) of
+        undefined ->
+            reject;
+        E when is_record(E, emschap) andalso E#emschap.phase == 1 ->
+            PasswordHash = pwhash(Password),
+            PrevChallenge = E#emschap.challenge,
+            Challenge = mschap_v2_challenge_hash(PeerChallenge, PrevChallenge, UserName),
+            ChallengeResponse = mschap_v2_challenge_response(Challenge, PasswordHash),
+            Name = list_to_binary(UserName),
+            Length = ?MESSAGE_LEN + ?EAP_PACKET_NODATA_SIZE + byte_size(Name),
+            case ChallengeResponse == NTResponse of
+                true ->
+                    Message = mschap_v2_auth_response(PasswordHash, NTResponse, Challenge),
+                    Pkt = <<?EAP_REQUEST:8,
+                            (Ident + 1):8,
+                            Length:16,
+                            ?EAP_MSCHAPV2_RESPONSE:8,
+                            ?OPCODE_SUCCESS:8,
+                            (MSIdent + 1):8,
+                            (Length - ?EAP_PACKET_NODATA_SIZE):16,
+                            (list_to_binary(Message))/binary>>,
+                    eap_reg:push(UserName, E#emschap{phase = 2, ntresponse = NTResponse, pwhash = PasswordHash}),
+                    {challenge, libeap:compose(Pkt)};
+                _ -> reject
+            end
     end.
+
+pwhash(Password) ->
+    crypto:md4(util:latin1_to_unicode(Password)).
