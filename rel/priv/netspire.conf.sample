@@ -65,6 +65,12 @@
         {use_mppe, no}, {require_encryption, yes}, {require_strong, yes}
     ]},
 
+    %% RADIUS EAP auth type
+    {mod_eap, [
+        {mschapv2_require_encryption, yes},
+        {mschapv2_require_strong, yes}
+    ],
+
     {mod_iptraffic, [
         {tariffs, "tariffs.conf"},
         {accounting_mode, netflow},
