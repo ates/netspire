@@ -69,7 +69,7 @@
     {mod_eap, [
         {mschapv2_require_encryption, yes},
         {mschapv2_require_strong, yes}
-    ],
+    ]},
 
     {mod_iptraffic, [
         {tariffs, "tariffs.conf"},
