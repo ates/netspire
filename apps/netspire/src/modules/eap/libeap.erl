@@ -8,8 +8,7 @@
 
 %% @doc Generates challenge value
 challenge() ->
-    random:seed(now()),
-    crypto:md5([random:uniform(255 - S) || S <- lists:seq(1, random:uniform(255))]).
+    crypto:md5(crypto:rand_bytes(128)).
 
 %% @doc Concatenates all EAP-Messages attributes
 %% to get the complete EAP packet
