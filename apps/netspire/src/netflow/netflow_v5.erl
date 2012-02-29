@@ -64,7 +64,9 @@ decode_records(<<?NF_V5_RECORD_FORMAT, Rest/binary>>, Acc0) ->
         17,0,0,65280,0,0}).
 
 decode_test() ->
-    {ok, {H, [R]}} = netflow_v5:decode(?BIN),
+    {ok, {H, [R]}} = decode(?BIN),
+    <<BrokenPacket:128, _/binary>> = ?BIN,
+    ?assertEqual(decode(BrokenPacket), {error, {badpdu, function_clause}}),
     ?assertEqual(H, ?HEADER),
     ?assertEqual(R, ?RECORD).
 

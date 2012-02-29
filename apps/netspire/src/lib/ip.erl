@@ -80,7 +80,7 @@ range2list(Address) when is_list(Address) ->
                 [{I1, I2, I3, I} || I <- lists:seq(I4, I8)]
             catch
                 _:_ ->
-                    throw({error, invalid_range_specified})
+                    {error, invalid_range_specified}
             end;
         _ ->
             {First, Last} = range(Address),
@@ -133,13 +133,15 @@ ip2long_test() ->
         {"127.0.0.1", 2130706433},
         {{127,0,0,1}, 2130706433},
         {"0.0.0.0", 0},
-        {"255.255.255.255", 4294967295}
+        {"255.255.255.255", 4294967295},
+        {"1.1.1.1.1", {error, einval}}
     ],
     [?assert(R =:= ip2long(T)) || {T, R} <- Tests].
 
 address_test() ->
     ?assert({ok, {inet, {127,0,0,1}}} =:= address("127.0.0.1")),
-    ?assert({ok, {inet6, {0,0,0,0,0,0,0,1}}} =:= address("::1")).
+    ?assert({ok, {inet6, {0,0,0,0,0,0,0,1}}} =:= address("::1")),
+    ?assert({error, einval} =:= address("1.1.1.1.1")).
 
 is_macaddr_test() ->
     ?assert(is_macaddr("AB:CD:EF:00:11:22") =:= true),
@@ -164,12 +166,15 @@ in_range_test() ->
 
 range2list_test() ->
     ?assert(range2list("1.1.1.1-1.1.1.3") =:= [{1,1,1,1}, {1,1,1,2}, {1,1,1,3}]),
-    ?assert(range2list("1.1.1.1/31") =:= [{1,1,1,0}, {1,1,1,1}]).
+    ?assert(range2list("1.1.1.1/31") =:= [{1,1,1,0}, {1,1,1,1}]),
+    ?assert(range2list("1.1.1.1-1.2.1.1") =:= {error, invalid_range_specified}).
 
 broadcast_test() ->
     ?assert(broadcast("1.1.1.0/24") =:= {1,1,1,255}).
 
 range_test() ->
-    ?assert(range("1.1.1.1/31") =:= {{1,1,1,0}, {1,1,1,1}}).
+    ?assert(range("1.1.1.1/31") =:= {{1,1,1,0}, {1,1,1,1}}),
+    ?assert(range("1.1.1.1") =:= {{1,1,1,1}, {1,1,1,1}}),
+    ?assert(range("1.1.1.0/24") =:= {{1,1,1,1}, {1,1,1,254}}).
 
 -endif.
