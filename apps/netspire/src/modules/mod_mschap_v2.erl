@@ -5,6 +5,10 @@
 %% API
 -export([verify_mschap_v2/6]).
 
+%% Needs for EAP-MSCHAPv2
+-export([mschap_v2_challenge_hash/3, mschap_v2_challenge_response/2,
+         mschap_v2_auth_response/3]).
+
 %% gen_module callbacks
 -export([start/1, stop/0]).
 
@@ -35,7 +39,7 @@ verify_mschap_v2(_, Request, UserName, Password, Replies, Client) ->
     end.
 
 do_mschap_v2(UserName, ChapChallenge, ChapResponse, Password, Replies, Auth, Secret) ->
-    Password1 = latin1_to_unicode(Password),
+    Password1 = util:latin1_to_unicode(Password),
     PasswordHash = crypto:md4(Password1),
     NTResponse = mschap_v2_nt_response(ChapResponse),
     PeerChallenge = mschap_v2_peer_challenge(ChapResponse),
@@ -51,8 +55,9 @@ do_mschap_v2(UserName, ChapChallenge, ChapResponse, Password, Replies, Auth, Sec
             ?INFO_MSG("MS-CHAP-V2 authentication succeeded: ~p~n", [UserName]),
             case gen_module:get_option(?MODULE, use_mppe) of
                 yes ->
-                    MPPE = mschap_v2_mppe:generate_mppe_attrs(NTResponse, PasswordHash, Auth, Secret),
-                    {stop, {accept, Replies ++ Attrs ++ MPPE}};
+                    MPPE = mschap_v2_mppe:mppe_attrs(NTResponse, PasswordHash, Auth, Secret),
+                    MPPEOpts = mppe_opts(),
+                    {stop, {accept, Replies ++ Attrs ++ MPPE ++ MPPEOpts}};
                 _ ->
                     {stop, {accept, Replies ++ Attrs}}
             end;
@@ -62,8 +67,8 @@ do_mschap_v2(UserName, ChapChallenge, ChapResponse, Password, Replies, Auth, Sec
     end.
 
 mschap_v2_challenge_response(Challenge, PasswordHash) ->
-    Keys = split_password_hash(list_to_binary([PasswordHash, <<0, 0, 0, 0, 0>>])),
-    Cyphers = lists:map(fun(K) -> crypto:des_ecb_encrypt(K, Challenge) end, Keys),
+    Keys = split_password_hash(<<PasswordHash/binary, 0, 0, 0, 0, 0>>),
+    Cyphers = [crypto:des_ecb_encrypt(K, Challenge) || K <- Keys],
     list_to_binary(Cyphers).
 
 split_password_hash(<<A:7/binary-unit:8, B:7/binary-unit:8, C:7/binary-unit:8>>) ->
@@ -125,9 +130,21 @@ set_parity(<<Current:8, Rest/binary>>, I, Next, Output) ->
   Result = (Current bsr I) bor Next bor 1,
   set_parity(Rest, I + 1, Current bsl (7 - I), <<Output/binary, Result>>).
 
-latin1_to_unicode(S) ->
-    latin1_to_unicode(S, []).
-latin1_to_unicode([], Ret) ->
-    lists:reverse(Ret);
-latin1_to_unicode([C | T], Acc) ->
-    latin1_to_unicode(T, [0, C | Acc]).
+mppe_opts() ->
+    Policy = case gen_module:get_option(?MODULE, require_encryption) of
+        yes ->
+            % Encryption required
+            [{"MS-MPPE-Encryption-Policy", <<2:32>>}];
+        _ ->
+            % Encryption allowed
+            [{"MS-MPPE-Encryption-Policy", <<1:32>>}]
+    end,
+    Types = case gen_module:get_option(?MODULE, require_strong) of
+        yes ->
+            % 128 bit keys
+            [{"MS-MPPE-Encryption-Types", <<4:32>>}];
+        _ ->
+            % 40- or 128-bit keys may be used
+            [{"MS-MPPE-Encryption-Types", <<6:32>>}]
+    end,
+    Policy ++ Types.

@@ -1,6 +1,7 @@
 -module(util).
 
--export([timestamp/0, to_hex/1, do_bxor/2, binary_to_hex_string/1]).
+-export([timestamp/0, to_hex/1, do_bxor/2, binary_to_hex_string/1,
+         latin1_to_unicode/1]).
 
 timestamp() ->
     {MegaSeconds, Seconds, _} = erlang:now(),
@@ -18,6 +19,13 @@ do_bxor(<<I1, Rest1/binary>>, <<I2, Rest2/binary>>, Acc) ->
 
 binary_to_hex_string(Bin) ->
     list_to_hex_string(binary_to_list(Bin)).
+
+latin1_to_unicode(S) ->
+    latin1_to_unicode(S, []).
+latin1_to_unicode([], Ret) ->
+    lists:reverse(Ret);
+latin1_to_unicode([C | T], Acc) ->
+    latin1_to_unicode(T, [0, C | Acc]).
 
 %%
 %% Internal functions
@@ -44,5 +52,8 @@ do_bxor_test() ->
 
 binary_to_hex_string_test() ->
     ?assert(binary_to_hex_string(<<"erlang">>) =:= "65726C616E67").
+
+latin1_to_unicode_test() ->
+    ?assert(latin1_to_unicode("joel") =:= [106,0,111,0,101,0,108,0]).
 
 -endif.

@@ -3,9 +3,9 @@
 -module(mschap_v2_mppe).
 
 %% API
--export([generate_mppe_attrs/4]).
+-export([mppe_attrs/4]).
 
-generate_mppe_attrs(NTResponse, PasswordHash, Auth, Secret) ->
+mppe_attrs(NTResponse, PasswordHash, Auth, Secret) ->
     SendSalt = create_salt(),
     RecvSalt = create_salt(),
     MasterKey = get_master_key(PasswordHash, NTResponse),
@@ -17,24 +17,7 @@ generate_mppe_attrs(NTResponse, PasswordHash, Auth, Secret) ->
     SendKey = encrypt_keys(PlainSendText, Secret, Auth, SendSalt),
     RecvKey = encrypt_keys(PlainRecvText, Secret, Auth, RecvSalt),
 
-    Keys = [{"MS-MPPE-Send-Key", SendKey}, {"MS-MPPE-Recv-Key", RecvKey}],
-    Policy = case gen_module:get_option(mod_mschap_v2, require_encryption) of
-        yes ->
-            % Encryption required
-            [{"MS-MPPE-Encryption-Policy", <<2:32>>}];
-        _ ->
-            % Encryption allowed
-            [{"MS-MPPE-Encryption-Policy", <<1:32>>}]
-    end,
-    Types = case gen_module:get_option(mod_mschap_v2, require_strong) of
-        yes ->
-            % 128 bit keys 
-            [{"MS-MPPE-Encryption-Types", <<4:32>>}];
-        _ ->
-            % 40- or 128-bit keys may be used
-            [{"MS-MPPE-Encryption-Types", <<6:32>>}]
-    end,
-    Keys ++ Policy ++ Types.
+    [{"MS-MPPE-Send-Key", SendKey}, {"MS-MPPE-Recv-Key", RecvKey}].
 
 %%
 %% Internal functions
