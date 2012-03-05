@@ -4,7 +4,6 @@
 
 -include("eap.hrl").
 -include("radius.hrl").
--include("netspire.hrl").
 
 %% @doc Generates challenge value
 challenge() ->
